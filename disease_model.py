@@ -3,11 +3,12 @@ from PIL import Image
 import logging
 import json
 import io
+import os
 
 logger = logging.getLogger(__name__)
 
-# 🔑 Gemini API Key
-GEMINI_API_KEY = "AIzaSyDkrgEPkgxdY_lz9tLJ8c6eAKCnsFyUCJ0"
+# 🔑 Gemini API Key from environment variable
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyDkrgEPkgxdY_lz9tLJ8c6eAKCnsFyUCJ0')
 
 class PlantDiseaseDetector:
     def __init__(self):

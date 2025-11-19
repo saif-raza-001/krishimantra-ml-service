@@ -1,9 +1,10 @@
 import google.generativeai as genai
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = "AIzaSyDkrgEPkgxdY_lz9tLJ8c6eAKCnsFyUCJ0"
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyDkrgEPkgxdY_lz9tLJ8c6eAKCnsFyUCJ0')
 
 class FarmingChatbot:
     def __init__(self):

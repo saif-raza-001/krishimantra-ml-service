@@ -2,10 +2,11 @@ import google.generativeai as genai
 from PIL import Image
 import logging
 import json
+import os
 
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = "AIzaSyDkrgEPkgxdY_lz9tLJ8c6eAKCnsFyUCJ0"
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyDkrgEPkgxdY_lz9tLJ8c6eAKCnsFyUCJ0')
 
 class SoilAnalyzer:
     def __init__(self):
