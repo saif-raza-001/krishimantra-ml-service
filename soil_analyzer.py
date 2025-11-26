@@ -30,12 +30,13 @@ class SoilAnalyzer:
             logger.info("🔍 Analyzing soil with Gemini AI...")
             
             prompt = """
-You are an expert agricultural soil scientist.
+You are an expert agricultural soil scientist with image recognition capabilities.
 
-Analyze this soil image and provide a JSON response:
+FIRST, determine if this image shows SOIL or something else.
 
+If this is SOIL, analyze it and provide:
 {
-  "is_soil": true/false,
+  "is_soil": true,
   "soil_type": "Clay/Loamy/Sandy/Silty/Peaty/Chalky",
   "color": "Description of soil color",
   "texture": "Fine/Medium/Coarse",
@@ -50,13 +51,37 @@ Analyze this soil image and provide a JSON response:
   "improvements": "How to improve this soil"
 }
 
-Rules:
-1. If NOT soil (clothing, objects, people), set is_soil: false
-2. Analyze color - dark = organic matter, red = iron, pale = sandy
-3. Estimate texture from appearance
-4. pH: Clay/dark (6-7), Sandy/light (5-6), Loamy (6.5-7)
-5. Give specific crop recommendations
-6. Provide actionable improvement advice
+If this is NOT SOIL, identify what it is and respond:
+{
+  "is_soil": false,
+  "detected_object": "What you see (e.g., floor tiles, fabric, wood, concrete, food, person, animal, etc.)",
+  "message": "This image shows [object], not soil. Please upload a clear photo of soil for analysis.",
+  "tips": [
+    "Take a photo of actual ground soil",
+    "Ensure good lighting",
+    "Remove any debris or objects",
+    "Focus on the soil surface"
+  ]
+}
+
+ANALYSIS RULES FOR SOIL:
+1. Color Analysis:
+   - Dark brown/black = High organic matter
+   - Red/Orange = Iron oxide (Fe₂O₃) present
+   - Yellow = Hydrated iron, moderate fertility
+   - Gray/White = Sandy, leached, low nutrients
+   
+2. Texture Analysis:
+   - Fine particles = Clay soil (high water retention)
+   - Coarse particles = Sandy soil (good drainage)
+   - Mixed = Loamy soil (ideal for farming)
+   
+3. pH Estimation:
+   - Clay/dark soils = 6.0-7.0
+   - Sandy/light soils = 5.0-6.0
+   - Loamy soils = 6.5-7.0
+   
+4. Give specific, actionable recommendations
 
 Respond with ONLY valid JSON.
 """
@@ -70,7 +95,11 @@ Respond with ONLY valid JSON.
             logger.info(f"📥 Gemini soil analysis: {response.text[:200]}...")
             
             result = self._parse_response(response.text)
-            logger.info(f"🌱 Soil Type: {result['soil_type']}, pH: {result['ph_estimate']}")
+            
+            if result.get('is_soil', True):
+                logger.info(f"🌱 Soil Type: {result['soil_type']}, pH: {result['ph_estimate']}")
+            else:
+                logger.info(f"❌ Not soil - Detected: {result.get('detected_object', 'Unknown object')}")
             
             return result
             
@@ -95,8 +124,40 @@ Respond with ONLY valid JSON.
             
             data = json.loads(json_text.strip())
             
+            # Check if it's soil or not
+            is_soil = data.get('is_soil', True)
+            
+            if not is_soil:
+                # Return non-soil response
+                return {
+                    "success": False,
+                    "is_soil": False,
+                    "detected_object": data.get('detected_object', 'Unknown object'),
+                    "message": data.get('message', 'This does not appear to be soil. Please upload a soil image.'),
+                    "tips": data.get('tips', [
+                        "Take a photo of actual ground soil",
+                        "Ensure good lighting",
+                        "Remove any debris or objects",
+                        "Focus on the soil surface"
+                    ]),
+                    "soil_type": "Not Soil",
+                    "color": "N/A",
+                    "texture": "N/A",
+                    "moisture": "N/A",
+                    "ph_estimate": 0,
+                    "nitrogen": "N/A",
+                    "phosphorus": "N/A",
+                    "potassium": "N/A",
+                    "organic_matter": "N/A",
+                    "recommendations": "Please upload a valid soil image for analysis.",
+                    "suitable_crops": [],
+                    "improvements": "N/A"
+                }
+            
+            # Return soil analysis
             return {
-                "success": data.get('is_soil', True),
+                "success": True,
+                "is_soil": True,
                 "soil_type": data.get('soil_type', 'Unknown'),
                 "color": data.get('color', 'Not determined'),
                 "texture": data.get('texture', 'Medium'),
@@ -118,6 +179,7 @@ Respond with ONLY valid JSON.
     def _fallback_analysis(self):
         return {
             "success": False,
+            "is_soil": True,
             "soil_type": "Analysis Unavailable",
             "color": "Unknown",
             "texture": "Unknown",
@@ -127,9 +189,9 @@ Respond with ONLY valid JSON.
             "phosphorus": "Medium",
             "potassium": "Medium",
             "organic_matter": "Medium",
-            "recommendations": "AI service temporarily unavailable",
+            "recommendations": "AI service temporarily unavailable. Please try again.",
             "suitable_crops": [],
-            "improvements": "Please try again"
+            "improvements": "Please try again later"
         }
 
 soil_analyzer = SoilAnalyzer()
