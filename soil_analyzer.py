@@ -128,7 +128,8 @@ Respond with ONLY valid JSON.
             is_soil = data.get('is_soil', True)
             
             if not is_soil:
-                # Return non-soil response
+                # Return non-soil response - NO ph_estimate parsing needed!
+                logger.info(f"🚫 Not soil detected: {data.get('detected_object', 'Unknown')}")
                 return {
                     "success": False,
                     "is_soil": False,
@@ -154,7 +155,13 @@ Respond with ONLY valid JSON.
                     "improvements": "N/A"
                 }
             
-            # Return soil analysis
+            # Return soil analysis - parse ph_estimate safely
+            ph_value = data.get('ph_estimate', 6.5)
+            try:
+                ph_value = float(ph_value) if ph_value is not None else 6.5
+            except (ValueError, TypeError):
+                ph_value = 6.5
+            
             return {
                 "success": True,
                 "is_soil": True,
@@ -162,7 +169,7 @@ Respond with ONLY valid JSON.
                 "color": data.get('color', 'Not determined'),
                 "texture": data.get('texture', 'Medium'),
                 "moisture": data.get('moisture', 'Unknown'),
-                "ph_estimate": float(data.get('ph_estimate', 6.5)),
+                "ph_estimate": ph_value,
                 "nitrogen": data.get('nitrogen', 'Medium'),
                 "phosphorus": data.get('phosphorus', 'Medium'),
                 "potassium": data.get('potassium', 'Medium'),
@@ -172,6 +179,9 @@ Respond with ONLY valid JSON.
                 "improvements": data.get('improvements', 'Add organic compost')
             }
             
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON parse error: {e}")
+            return self._fallback_analysis()
         except Exception as e:
             logger.error(f"Failed to parse soil response: {e}")
             return self._fallback_analysis()
