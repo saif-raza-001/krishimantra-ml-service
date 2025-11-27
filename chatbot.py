@@ -4,20 +4,27 @@ import os
 
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyDkrgEPkgxdY_lz9tLJ8c6eAKCnsFyUCJ0')
+# 🔑 Gemini API Key from environment variable ONLY (no hardcoded fallback)
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+
+if not GEMINI_API_KEY:
+    logger.error("❌ GEMINI_API_KEY environment variable not set!")
 
 class FarmingChatbot:
     def __init__(self):
         logger.info("💬 Initializing AI Farming Chatbot...")
         try:
+            if not GEMINI_API_KEY:
+                raise Exception("GEMINI_API_KEY environment variable is missing")
+            
             genai.configure(api_key=GEMINI_API_KEY)
             self.model = genai.GenerativeModel('gemini-2.5-flash')
             logger.info("✅ Chatbot ready!")
-            
+
         except Exception as e:
             logger.error(f"❌ Chatbot initialization failed: {e}")
             self.model = None
-    
+
     def get_response(self, user_message, user_name="Farmer"):
         """
         Get AI response to user's farming question
@@ -44,19 +51,19 @@ Your expertise includes:
 - Sustainable agriculture
 
 Guidelines:
-1. Address the farmer by name ({user_name}) occasionally to be personal and friendly
-2. Be encouraging and supportive - farming is hard work!
-3. Provide practical, actionable advice they can implement
-4. Use simple language (avoid overly technical jargon)
-5. If asked about non-farming topics, politely redirect to farming
-6. Always prioritize sustainable and safe farming practices
-7. Keep responses concise (2-3 paragraphs max, unless detailed explanation needed)
-8. Use emojis occasionally to be friendly 🌾
-9. If you give specific product recommendations, mention they're general suggestions
+- Address the farmer by name ({user_name}) occasionally to be personal and friendly
+- Be encouraging and supportive - farming is hard work!
+- Provide practical, actionable advice they can implement
+- Use simple language (avoid overly technical jargon)
+- If asked about non-farming topics, politely redirect to farming
+- Always prioritize sustainable and safe farming practices
+- Keep responses concise (2-3 paragraphs max, unless detailed explanation needed)
+- Use emojis occasionally to be friendly 🌾
+- If you give specific product recommendations, mention they're general suggestions
 
 Remember: You're helping {user_name} succeed in their farming journey!
 """
-            
+
             # Combine context with user message
             full_prompt = f"{system_context}\n\n{user_name}'s Question: {user_message}\n\nYour Response:"
             

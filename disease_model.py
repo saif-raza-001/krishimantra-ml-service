@@ -7,15 +7,21 @@ import os
 
 logger = logging.getLogger(__name__)
 
-# 🔑 Gemini API Key from environment variable
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyDkrgEPkgxdY_lz9tLJ8c6eAKCnsFyUCJ0')
+# 🔑 Gemini API Key from environment variable ONLY (no hardcoded fallback)
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+
+if not GEMINI_API_KEY:
+    logger.error("❌ GEMINI_API_KEY environment variable not set!")
 
 class PlantDiseaseDetector:
     def __init__(self):
         logger.info("🤖 Initializing Google Gemini Vision AI...")
         try:
-            genai.configure(api_key=GEMINI_API_KEY)
+            if not GEMINI_API_KEY:
+                raise Exception("GEMINI_API_KEY environment variable is missing")
             
+            genai.configure(api_key=GEMINI_API_KEY)
+
             # Use the CORRECT model names from your available list
             model_names = [
                 'gemini-2.5-flash',           # Latest stable
@@ -43,7 +49,7 @@ class PlantDiseaseDetector:
         except Exception as e:
             logger.error(f"❌ Gemini initialization failed: {e}")
             self.model = None
-    
+
     def analyze_disease(self, image):
         """
         Use Google Gemini Vision to analyze plant diseases
@@ -87,12 +93,14 @@ Rules:
    - Even unhealthy plants are still plants!
 
 3. Be STRICT about rejecting non-plant images (clothing, furniture, people, food items, animals)
+
 4. Be LENIENT with diseased/damaged plants - they're still plants!
+
 5. Provide specific, actionable treatment recommendations
 
 Respond with ONLY valid JSON, no other text.
 """
-            
+
             # Send to Gemini
             try:
                 response = self.model.generate_content([prompt, image])
@@ -117,7 +125,7 @@ Respond with ONLY valid JSON, no other text.
         except Exception as e:
             logger.error(f"❌ Gemini analysis error: {e}")
             return self._fallback_analysis()
-    
+
     def _parse_gemini_response(self, response_text):
         """
         Parse Gemini's JSON response
@@ -161,7 +169,7 @@ Respond with ONLY valid JSON, no other text.
         except Exception as e:
             logger.error(f"Failed to parse Gemini response: {e}")
             return self._fallback_analysis()
-    
+
     def _fallback_analysis(self):
         """
         Fallback if Gemini unavailable

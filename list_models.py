@@ -1,6 +1,13 @@
 import google.generativeai as genai
+import os
 
-GEMINI_API_KEY = "AIzaSyDkrgEPkgxdY_lz9tLJ8c6eAKCnsFyUCJ0"
+# Get API key from environment variable
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+
+if not GEMINI_API_KEY:
+    print("❌ GEMINI_API_KEY environment variable not set!")
+    print("   Set it in .env file or as environment variable")
+    exit(1)
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -36,4 +43,3 @@ except Exception as e:
     print("\n💡 Your API key might not be activated or valid.")
     print("   Go to: https://makersuite.google.com/app/apikey")
     print("   And verify your API key is enabled.\n")
-

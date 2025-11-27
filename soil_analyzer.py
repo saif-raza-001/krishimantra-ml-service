@@ -6,12 +6,19 @@ import os
 
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyDkrgEPkgxdY_lz9tLJ8c6eAKCnsFyUCJ0')
+# 🔑 Gemini API Key from environment variable ONLY (no hardcoded fallback)
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+
+if not GEMINI_API_KEY:
+    logger.error("❌ GEMINI_API_KEY environment variable not set!")
 
 class SoilAnalyzer:
     def __init__(self):
         logger.info("🌱 Initializing Soil Analysis AI...")
         try:
+            if not GEMINI_API_KEY:
+                raise Exception("GEMINI_API_KEY environment variable is missing")
+            
             genai.configure(api_key=GEMINI_API_KEY)
             self.model = genai.GenerativeModel('gemini-2.5-flash')
             logger.info("✅ Soil Analyzer ready!")
