@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from PIL import Image
 import io
 import logging
+import gc
 
 # Configure logging FIRST
 logging.basicConfig(
@@ -13,7 +14,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Import AI models
+# Import AI models (they initialize on startup for wake-up feature)
 from disease_model import detector
 from soil_analyzer import soil_analyzer
 from chatbot import chatbot
@@ -38,7 +39,7 @@ async def root():
     return {
         "service": "AgriSmart ML Service",
         "status": "running",
-        "version": "2.0",
+        "version": "2.1-optimized",
         "ai": "Google Gemini Vision",
         "features": ["Disease Detection", "Soil Analysis", "AI Chatbot"],
         "endpoints": {
@@ -47,6 +48,11 @@ async def root():
             "chat": "/api/chat"
         }
     }
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for wake-up calls"""
+    return {"status": "healthy", "message": "ML Service is running"}
 
 @app.post("/api/disease-detection")
 async def analyze_disease(image: UploadFile = File(...)):
@@ -57,17 +63,29 @@ async def analyze_disease(image: UploadFile = File(...)):
         contents = await image.read()
         img = Image.open(io.BytesIO(contents))
         
-        logger.info(f"📊 Image: {img.size}, Mode: {img.mode}")
+        # Resize large images to save memory
+        max_size = 1024
+        if img.width > max_size or img.height > max_size:
+            img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+            logger.info(f"📊 Image resized to: {img.size}")
+        else:
+            logger.info(f"📊 Image: {img.size}, Mode: {img.mode}")
         
         result = detector.analyze_disease(img)
         
         logger.info(f"🎯 Result: {result['disease']} ({result['confidence']*100:.1f}%)")
         logger.info("="*60)
         
+        # Clean up memory
+        del img
+        del contents
+        gc.collect()
+        
         return result
         
     except Exception as e:
         logger.error(f"❌ Error: {e}")
+        gc.collect()
         return {
             "success": False,
             "disease": "Processing Error",
@@ -87,17 +105,29 @@ async def analyze_soil(image: UploadFile = File(...)):
         contents = await image.read()
         img = Image.open(io.BytesIO(contents))
         
-        logger.info(f"📊 Image: {img.size}, Mode: {img.mode}")
+        # Resize large images to save memory
+        max_size = 1024
+        if img.width > max_size or img.height > max_size:
+            img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+            logger.info(f"📊 Image resized to: {img.size}")
+        else:
+            logger.info(f"📊 Image: {img.size}, Mode: {img.mode}")
         
         result = soil_analyzer.analyze_soil(img)
         
         logger.info(f"🌱 Soil: {result['soil_type']}, pH: {result['ph_estimate']}")
         logger.info("="*60)
         
+        # Clean up memory
+        del img
+        del contents
+        gc.collect()
+        
         return result
         
     except Exception as e:
         logger.error(f"❌ Error: {e}")
+        gc.collect()
         return {
             "success": False,
             "soil_type": "Processing Error",
@@ -125,10 +155,14 @@ async def chat(message: ChatMessage):
         logger.info(f"🤖 Response: {result['reply'][:50]}...")
         logger.info("="*60)
         
+        # Clean up memory
+        gc.collect()
+        
         return result
         
     except Exception as e:
         logger.error(f"❌ Chat Error: {e}")
+        gc.collect()
         return {
             "reply": "I'm sorry, I'm having trouble responding right now. Please try again!",
             "success": False
@@ -138,7 +172,7 @@ if __name__ == "__main__":
     import uvicorn
     
     print("\n" + "="*60)
-    print("🤖 AgriSmart ML Service - ADVANCED AI")
+    print("🤖 AgriSmart ML Service - OPTIMIZED")
     print("="*60)
     print("✨ Features:")
     print("  • Plant Disease Detection (Gemini AI)")
